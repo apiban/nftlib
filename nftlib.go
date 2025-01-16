@@ -1,20 +1,27 @@
-// NFTLIB - exec commands to work with NFTABLES
-// Copyright (C) 2025 Fred Posner
-// Copyright (C) 2025 The Palner Group, Inc.
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <https://www.gnu.org/licenses/>.
-//
+/*
+NFTLIB - exec commands to work with NFTABLES
+The MIT License (MIT)
+
+Copyright (c) 2025 Fred Posner
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 package nftlib
 
@@ -47,9 +54,40 @@ type NFTTABLEDETAILS struct {
 	Handle int    `json:"handle"`
 }
 
+// nft add set
+func NftAddSet(data NFTCHAINDETAILS, setname string) error {
+	args := []string{"add", "set", data.Family, data.Table, setname, "{ type ipv4_addr; }"}
+	nft := exec.Command("nft", args...)
+	if err := nft.Run(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // nft list add element to set
 func NftAddSetElement(data NFTABLES, ipaddress string) error {
 	args := []string{"add", "element", data.Family, data.Table, data.Set, "{", ipaddress, "}"}
+	nft := exec.Command("nft", args...)
+	if err := nft.Run(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func NftAddSetRuleInput(data NFTCHAINDETAILS, setname string) error {
+	args := []string{"add", "rule", data.Family, data.Table, data.Chain, "ip", "saddr", "@" + setname, "drop"}
+	nft := exec.Command("nft", args...)
+	if err := nft.Run(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func NftAddSetRuleOutput(data NFTCHAINDETAILS, setname string) error {
+	args := []string{"add", "rule", data.Family, data.Table, data.Chain, "ip", "daddr", "!=", "@" + setname, "accept"}
 	nft := exec.Command("nft", args...)
 	if err := nft.Run(); err != nil {
 		return err
@@ -103,7 +141,7 @@ func NftGetChainDetails(chainname string) (NFTCHAINDETAILS, error) {
 		return chaindetails, errors.New("cannot get chain family")
 	}
 
-	table := gjson.Get(string(response), "nftables.#(chain.name==\""+chainname+"\").chain.handle")
+	table := gjson.Get(string(response), "nftables.#(chain.name==\""+chainname+"\").chain.table")
 	if !table.Exists() {
 		return chaindetails, errors.New("cannot get chain table")
 	}
@@ -174,6 +212,32 @@ func NftGetInputChains() ([]string, error) {
 		})
 	} else {
 		return nftchains, errors.New("no input hook chains found")
+	}
+
+	return nftchains, nil
+}
+
+// list output hook chains
+func NftGetOutputChains() ([]string, error) {
+	var nftchains []string
+	args := []string{"-j", "list", "chains"}
+	response, err := exec.Command("nft", args...).Output()
+	if err != nil {
+		return nftchains, err
+	}
+
+	if !gjson.Valid(string(response)) {
+		return nftchains, errors.New("invalid json response")
+	}
+
+	chains := gjson.Get(string(response), "nftables.#(chain.hook==\"output\")#.chain.name")
+	if chains.Exists() {
+		chains.ForEach(func(key, value gjson.Result) bool {
+			nftchains = append(nftchains, value.String())
+			return true
+		})
+	} else {
+		return nftchains, errors.New("no output hook chains found")
 	}
 
 	return nftchains, nil
