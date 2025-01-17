@@ -65,6 +65,21 @@ func NftAddSet(data NFTCHAINDETAILS, setname string) error {
 	return nil
 }
 
+// nft add v6 set
+func NftAddv6Set(data NFTCHAINDETAILS, setname string) error {
+	if data.Family != "inet" {
+		return errors.New("family does not support ipv6")
+	}
+
+	args := []string{"add", "set", data.Family, data.Table, setname, "{ type ipv6_addr; }"}
+	nft := exec.Command("nft", args...)
+	if err := nft.Run(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // nft list add element to set
 func NftAddSetElement(data NFTABLES, ipaddress string) error {
 	args := []string{"add", "element", data.Family, data.Table, data.Set, "{", ipaddress, "}"}
