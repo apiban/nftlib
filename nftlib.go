@@ -101,8 +101,28 @@ func NftAddSetRuleInput(data NFTCHAINDETAILS, setname string) error {
 	return nil
 }
 
+func NftAddSetRulev6Input(data NFTCHAINDETAILS, setname string) error {
+	args := []string{"add", "rule", data.Family, data.Table, data.Chain, "ip6", "saddr", "@" + setname, "drop"}
+	nft := exec.Command("nft", args...)
+	if err := nft.Run(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func NftAddSetRuleOutput(data NFTCHAINDETAILS, setname string) error {
 	args := []string{"add", "rule", data.Family, data.Table, data.Chain, "ip", "daddr", "!=", "@" + setname, "accept"}
+	nft := exec.Command("nft", args...)
+	if err := nft.Run(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func NftAddSetRulev6Output(data NFTCHAINDETAILS, setname string) error {
+	args := []string{"add", "rule", data.Family, data.Table, data.Chain, "ip6", "daddr", "!=", "@" + setname, "accept"}
 	nft := exec.Command("nft", args...)
 	if err := nft.Run(); err != nil {
 		return err
