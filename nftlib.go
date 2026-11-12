@@ -9,6 +9,7 @@ package nftlib
 import (
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"strconv"
@@ -37,6 +38,25 @@ type NFTTABLEDETAILS struct {
 	Table  string `json:"table"`
 	Family string `json:"family"`
 	Handle int    `json:"handle"`
+}
+
+// Function to see if string within string
+func ContainsIP(cidrstring string, ip string) bool {
+	_, netw, err := net.ParseCIDR(cidrstring)
+	if err != nil {
+		return false
+	}
+
+	ipaddress := net.ParseIP(ip)
+	if ipaddress == nil {
+		return false
+	}
+
+	if netw.Contains(ipaddress) {
+		return true
+	}
+
+	return false
 }
 
 // get linux uptime
