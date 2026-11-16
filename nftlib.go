@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/tidwall/gjson"
 )
@@ -40,6 +41,19 @@ type NFTTABLEDETAILS struct {
 	Handle int    `json:"handle"`
 }
 
+func BeenAWeek(ts int64) bool {
+	checkTime := time.Unix(ts, 0)
+	timeNow := time.Now()
+	oneWeekAgo := timeNow.AddDate(0, 0, -7)
+
+	if checkTime.Before(oneWeekAgo) {
+		return true
+	}
+
+	return false
+
+}
+
 // Function to see if string within string
 func ContainsIP(cidrstring string, ip string) bool {
 	_, netw, err := net.ParseCIDR(cidrstring)
@@ -57,6 +71,22 @@ func ContainsIP(cidrstring string, ip string) bool {
 	}
 
 	return false
+}
+
+// Function to see if string within string
+func Contains(list []string, value string) bool {
+	for _, val := range list {
+		if val == value {
+			return true
+		}
+	}
+	return false
+}
+
+func GetTime() int64 {
+	now := time.Now()
+	sec := now.Unix()
+	return sec
 }
 
 // get linux uptime
@@ -436,4 +466,13 @@ func NftListSet(set string) (NFTABLES, error) {
 	}
 
 	return nftableData, nil
+}
+
+func RemoveElement(element string, array []string) []string {
+	for i, v := range array {
+		if v == element {
+			return append(array[:i], array[i+1:]...)
+		}
+	}
+	return array
 }
